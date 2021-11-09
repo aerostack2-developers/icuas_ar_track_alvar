@@ -150,6 +150,8 @@ void getCapCallback(const sensor_msgs::ImageConstPtr& image_msg)
         tf::StampedTransform camToMarker(t, image_msg->header.stamp,
                                          image_msg->header.frame_id,
                                          markerFrame.c_str());
+
+                                     
         tf_broadcaster->sendTransform(camToMarker);
 
         // Create the rviz visualization messages

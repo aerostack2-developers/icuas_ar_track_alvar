@@ -271,8 +271,8 @@ void MultiMarker::PointCloudCorners3d(double edge_length, Pose& pose,
     if (j == 0)
     {
       int zzzz = 2;
-      // X_data[0] = -0.5*edge_length;
-      // X_data[1] = -0.5*edge_length;
+      X_data[0] = -0.5*edge_length;
+      X_data[1] = -0.5*edge_length;
     }
     else if (j == 1)
     {
