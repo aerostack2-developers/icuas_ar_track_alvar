@@ -228,7 +228,7 @@ void getCapCallback(const sensor_msgs::ImageConstPtr& image_msg)
     }
     catch (const std::exception& e)
     {
-      ROS_ERROR("Error in ar_track_alvar callback");
+      ROS_ERROR_ONCE("Error in ar_track_alvar callback");
     }
   }
 }
