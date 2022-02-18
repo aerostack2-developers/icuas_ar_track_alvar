@@ -152,7 +152,7 @@ void getCapCallback(const sensor_msgs::ImageConstPtr& image_msg)
                                          markerFrame.c_str());
 
         bool pub_tf;
-        ros::param::get("~publish_tf", pub_tf, true  );
+        ros::param::param<bool>("~publish_tf", pub_tf, true  );
         if (pub_tf)
           tf_broadcaster->sendTransform(camToMarker);
 
