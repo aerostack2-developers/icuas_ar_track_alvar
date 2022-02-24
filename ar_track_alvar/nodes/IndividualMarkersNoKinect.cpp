@@ -150,7 +150,11 @@ void getCapCallback(const sensor_msgs::ImageConstPtr& image_msg)
         tf::StampedTransform camToMarker(t, image_msg->header.stamp,
                                          image_msg->header.frame_id,
                                          markerFrame.c_str());
-        tf_broadcaster->sendTransform(camToMarker);
+
+        bool pub_tf;
+        ros::param::param<bool>("~publish_tf", pub_tf, true  );
+        if (pub_tf)
+          tf_broadcaster->sendTransform(camToMarker);
 
         // Create the rviz visualization messages
         tf::poseTFToMsg(markerPose, rvizMarker_.pose);
@@ -224,7 +228,7 @@ void getCapCallback(const sensor_msgs::ImageConstPtr& image_msg)
     }
     catch (const std::exception& e)
     {
-      ROS_ERROR("Error in ar_track_alvar callback");
+      ROS_ERROR_ONCE("Error in ar_track_alvar callback");
     }
   }
 }
