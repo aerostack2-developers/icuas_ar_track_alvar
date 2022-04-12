@@ -51,15 +51,16 @@ using namespace alvar;
 using namespace std;
 
 bool init = true;
-Camera* cam;
+Camera *cam;
 cv_bridge::CvImagePtr cv_ptr_;
 image_transport::Subscriber cam_sub_;
+image_transport::Publisher cam_pub_;
 ros::Publisher arMarkerPub_;
 ros::Publisher rvizMarkerPub_;
 ar_track_alvar_msgs::AlvarMarkers arPoseMarkers_;
 visualization_msgs::Marker rvizMarker_;
-tf::TransformListener* tf_listener;
-tf::TransformBroadcaster* tf_broadcaster;
+tf::TransformListener *tf_listener;
+tf::TransformBroadcaster *tf_broadcaster;
 MarkerDetector<MarkerData> marker_detector;
 
 bool enableSwitched = false;
@@ -71,12 +72,12 @@ double max_track_error;
 std::string cam_image_topic;
 std::string cam_info_topic;
 std::string output_frame;
-int marker_resolution = 5;  // default marker resolution
-int marker_margin = 2;      // default marker margin
+int marker_resolution = 5; // default marker resolution
+int marker_margin = 2;     // default marker margin
 
-void getCapCallback(const sensor_msgs::ImageConstPtr& image_msg);
+void getCapCallback(const sensor_msgs::ImageConstPtr &image_msg);
 
-void getCapCallback(const sensor_msgs::ImageConstPtr& image_msg)
+void getCapCallback(const sensor_msgs::ImageConstPtr &image_msg)
 {
   // If we've already gotten the cam info, then go ahead
   if (cam->getCamInfo_)
@@ -107,6 +108,8 @@ void getCapCallback(const sensor_msgs::ImageConstPtr& image_msg)
                              max_new_marker_error, max_track_error, CVSEQ,
                              true);
       arPoseMarkers_.markers.clear();
+
+      std::vector<alvar::PointDouble> marker_img_points;
       for (size_t i = 0; i < marker_detector.markers->size(); i++)
       {
         // Get the pose relative to the camera
@@ -116,19 +119,19 @@ void getCapCallback(const sensor_msgs::ImageConstPtr& image_msg)
         double py = p.translation[1] / 100.0;
         double pz = p.translation[2] / 100.0;
 
-        cv::Mat quat =cv::Mat(4, 1, CV_64F);
+        cv::Mat quat = cv::Mat(4, 1, CV_64F);
         p.GetQuaternion(quat);
-        double qx = quat.at<double>(1,0); //p.quaternion[1]; #leaving these for the record, this was a bug in the original repo
-        double qy = quat.at<double>(2,0); //p.quaternion[2];
-        double qz = quat.at<double>(3,0); //p.quaternion[3];
-        double qw = quat.at<double>(0,0); //p.quaternion[0];
+        double qx = quat.at<double>(1, 0); // p.quaternion[1]; #leaving these for the record, this was a bug in the original repo
+        double qy = quat.at<double>(2, 0); // p.quaternion[2];
+        double qz = quat.at<double>(3, 0); // p.quaternion[3];
+        double qw = quat.at<double>(0, 0); // p.quaternion[0];
 
         tf::Quaternion rotation(qx, qy, qz, qw);
         tf::Vector3 origin(px, py, pz);
         tf::Transform t(rotation, origin);
         tf::Vector3 markerOrigin(0, 0, 0);
         tf::Transform m(tf::Quaternion::getIdentity(), markerOrigin);
-        tf::Transform markerPose = t * m;  // marker pose in the camera frame
+        tf::Transform markerPose = t * m; // marker pose in the camera frame
 
         tf::Vector3 z_axis_cam = tf::Transform(rotation, tf::Vector3(0, 0, 0)) *
                                  tf::Vector3(0, 0, 1);
@@ -151,8 +154,10 @@ void getCapCallback(const sensor_msgs::ImageConstPtr& image_msg)
                                          image_msg->header.frame_id,
                                          markerFrame.c_str());
 
-                                     
-        tf_broadcaster->sendTransform(camToMarker);
+        bool pub_tf;
+        ros::param::param<bool>("~publish_tf", pub_tf, true);
+        if (pub_tf)
+          tf_broadcaster->sendTransform(camToMarker);
 
         // Create the rviz visualization messages
         tf::poseTFToMsg(markerPose, rvizMarker_.pose);
@@ -168,42 +173,42 @@ void getCapCallback(const sensor_msgs::ImageConstPtr& image_msg)
         rvizMarker_.action = visualization_msgs::Marker::ADD;
         switch (id)
         {
-          case 0:
-            rvizMarker_.color.r = 0.0f;
-            rvizMarker_.color.g = 0.0f;
-            rvizMarker_.color.b = 1.0f;
-            rvizMarker_.color.a = 1.0;
-            break;
-          case 1:
-            rvizMarker_.color.r = 1.0f;
-            rvizMarker_.color.g = 0.0f;
-            rvizMarker_.color.b = 0.0f;
-            rvizMarker_.color.a = 1.0;
-            break;
-          case 2:
-            rvizMarker_.color.r = 0.0f;
-            rvizMarker_.color.g = 1.0f;
-            rvizMarker_.color.b = 0.0f;
-            rvizMarker_.color.a = 1.0;
-            break;
-          case 3:
-            rvizMarker_.color.r = 0.0f;
-            rvizMarker_.color.g = 0.5f;
-            rvizMarker_.color.b = 0.5f;
-            rvizMarker_.color.a = 1.0;
-            break;
-          case 4:
-            rvizMarker_.color.r = 0.5f;
-            rvizMarker_.color.g = 0.5f;
-            rvizMarker_.color.b = 0.0;
-            rvizMarker_.color.a = 1.0;
-            break;
-          default:
-            rvizMarker_.color.r = 0.5f;
-            rvizMarker_.color.g = 0.0f;
-            rvizMarker_.color.b = 0.5f;
-            rvizMarker_.color.a = 1.0;
-            break;
+        case 0:
+          rvizMarker_.color.r = 0.0f;
+          rvizMarker_.color.g = 0.0f;
+          rvizMarker_.color.b = 1.0f;
+          rvizMarker_.color.a = 1.0;
+          break;
+        case 1:
+          rvizMarker_.color.r = 1.0f;
+          rvizMarker_.color.g = 0.0f;
+          rvizMarker_.color.b = 0.0f;
+          rvizMarker_.color.a = 1.0;
+          break;
+        case 2:
+          rvizMarker_.color.r = 0.0f;
+          rvizMarker_.color.g = 1.0f;
+          rvizMarker_.color.b = 0.0f;
+          rvizMarker_.color.a = 1.0;
+          break;
+        case 3:
+          rvizMarker_.color.r = 0.0f;
+          rvizMarker_.color.g = 0.5f;
+          rvizMarker_.color.b = 0.5f;
+          rvizMarker_.color.a = 1.0;
+          break;
+        case 4:
+          rvizMarker_.color.r = 0.5f;
+          rvizMarker_.color.g = 0.5f;
+          rvizMarker_.color.b = 0.0;
+          rvizMarker_.color.a = 1.0;
+          break;
+        default:
+          rvizMarker_.color.r = 0.5f;
+          rvizMarker_.color.g = 0.0f;
+          rvizMarker_.color.b = 0.5f;
+          rvizMarker_.color.a = 1.0;
+          break;
         }
         rvizMarker_.lifetime = ros::Duration(1.0);
         rvizMarkerPub_.publish(rvizMarker_);
@@ -219,19 +224,42 @@ void getCapCallback(const sensor_msgs::ImageConstPtr& image_msg)
         ar_pose_marker.header.stamp = image_msg->header.stamp;
         ar_pose_marker.id = id;
         arPoseMarkers_.markers.push_back(ar_pose_marker);
+
+        marker_img_points = (*(marker_detector.markers))[i].marker_corners_img;
       }
-      arPoseMarkers_.header.stamp = image_msg->header.stamp;
-      arPoseMarkers_.header.frame_id = output_frame;
-      arMarkerPub_.publish(arPoseMarkers_);
+
+      if (arPoseMarkers_.markers.size() > 0)
+      {
+        arPoseMarkers_.header.stamp = image_msg->header.stamp;
+        arPoseMarkers_.header.frame_id = output_frame;
+        arMarkerPub_.publish(arPoseMarkers_);
+      }
+
+      if (marker_img_points.size() > 0)
+      {
+        // alvar::DrawLines(cv_ptr_->image, marker_img_points, cv::Scalar(0, 255, 0));
+        cv::Scalar line_color(0, 255, 0);
+        for (unsigned i = 1; i < marker_img_points.size(); ++i)
+          cv::line(cv_ptr_->image, cv::Point((int)marker_img_points[i - 1].x, (int)marker_img_points[i - 1].y),
+                   cv::Point((int)marker_img_points[i].x, (int)marker_img_points[i].y), line_color, 3);
+        // if (loop)
+        cv::line(cv_ptr_->image,
+                 cv::Point((int)marker_img_points[marker_img_points.size() - 1].x,
+                           (int)marker_img_points[marker_img_points.size() - 1].y),
+                 cv::Point((int)marker_img_points[0].x, (int)marker_img_points[0].y), line_color, 3);
+
+        sensor_msgs::ImagePtr output_image_msg = cv_bridge::CvImage(image_msg->header, "rgb8", cv_ptr_->image).toImageMsg();
+        cam_pub_.publish(output_image_msg);
+      }
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
-      ROS_ERROR("Error in ar_track_alvar callback");
+      ROS_ERROR_ONCE("Error in ar_track_alvar callback");
     }
   }
 }
 
-void configCallback(ar_track_alvar::ParamsConfig& config, uint32_t level)
+void configCallback(ar_track_alvar::ParamsConfig &config, uint32_t level)
 {
   ROS_INFO("AR tracker reconfigured: %s %.2f %.2f %.2f %.2f",
            config.enabled ? "ENABLED" : "DISABLED", config.max_frequency,
@@ -247,13 +275,13 @@ void configCallback(ar_track_alvar::ParamsConfig& config, uint32_t level)
   max_track_error = config.max_track_error;
 }
 
-void enableCallback(const std_msgs::BoolConstPtr& msg)
+void enableCallback(const std_msgs::BoolConstPtr &msg)
 {
   enableSwitched = enabled != msg->data;
   enabled = msg->data;
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
   ros::init(argc, argv, "marker_detect");
   ros::NodeHandle n, pn("~");
@@ -300,7 +328,7 @@ int main(int argc, char* argv[])
     pn.param("max_new_marker_error", max_new_marker_error, 0.08);
     pn.param("max_track_error", max_track_error, 0.2);
     pn.param("max_frequency", max_frequency, 8.0);
-    pn.setParam("max_frequency", max_frequency);  // in case it was not set.
+    pn.setParam("max_frequency", max_frequency); // in case it was not set.
     pn.param("marker_resolution", marker_resolution, 5);
     pn.param("marker_margin", marker_margin, 2);
     if (!pn.getParam("output_frame", output_frame))
@@ -377,9 +405,15 @@ int main(int argc, char* argv[])
       // processing nodelet lazy publishing policy; in CPU-scarce computer as
       // TurtleBot's laptop this is a huge saving
       if (enabled)
+      {
         cam_sub_ = it_.subscribe(cam_image_topic, 1, &getCapCallback);
+        cam_pub_ = it_.advertise("ar_track_alvar/tag_image", 1);
+      }
       else
+      {
         cam_sub_.shutdown();
+        cam_pub_.shutdown();
+      }
       enableSwitched = false;
     }
   }
