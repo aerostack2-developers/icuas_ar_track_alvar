@@ -76,6 +76,7 @@ int marker_resolution = 5; // default marker resolution
 int marker_margin = 2;     // default marker margin
 
 void getCapCallback(const sensor_msgs::ImageConstPtr &image_msg);
+void limitPoseMarker(geometry_msgs::Pose &pose_marker);
 
 void getCapCallback(const sensor_msgs::ImageConstPtr &image_msg)
 {
@@ -223,6 +224,7 @@ void getCapCallback(const sensor_msgs::ImageConstPtr &image_msg)
         ar_pose_marker.header.frame_id = output_frame;
         ar_pose_marker.header.stamp = image_msg->header.stamp;
         ar_pose_marker.id = id;
+        limitPoseMarker(ar_pose_marker.pose.pose);
         arPoseMarkers_.markers.push_back(ar_pose_marker);
 
         marker_img_points = (*(marker_detector.markers))[i].marker_corners_img;
@@ -279,6 +281,31 @@ void enableCallback(const std_msgs::BoolConstPtr &msg)
 {
   enableSwitched = enabled != msg->data;
   enabled = msg->data;
+}
+
+void limitPoseMarker(geometry_msgs::Pose &pose_marker)
+{
+  float max_pose_marker_x = 12.5;
+  float min_pose_marker_x = 1.0;
+  float max_pose_marker_y = 7.5;
+  float min_pose_marker_y = -7.5;
+  float max_pose_marker_z = 4.5;
+  float min_pose_marker_z = 0.5;
+
+  if (pose_marker.position.x > max_pose_marker_x)
+    pose_marker.position.x = max_pose_marker_x;
+  else if (pose_marker.position.x < min_pose_marker_x)
+    pose_marker.position.x = min_pose_marker_x;
+
+  if (pose_marker.position.y > max_pose_marker_y)
+    pose_marker.position.y = max_pose_marker_y;
+  else if (pose_marker.position.y < min_pose_marker_y)
+    pose_marker.position.y = min_pose_marker_y;
+
+  if (pose_marker.position.z > max_pose_marker_z)
+    pose_marker.position.z = max_pose_marker_z;
+  else if (pose_marker.position.z < min_pose_marker_z)
+    pose_marker.position.z = min_pose_marker_z;
 }
 
 int main(int argc, char *argv[])
