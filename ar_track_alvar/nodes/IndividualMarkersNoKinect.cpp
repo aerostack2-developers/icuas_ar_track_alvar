@@ -306,6 +306,27 @@ void limitPoseMarker(geometry_msgs::Pose &pose_marker)
     pose_marker.position.z = max_pose_marker_z;
   else if (pose_marker.position.z < min_pose_marker_z)
     pose_marker.position.z = min_pose_marker_z;
+
+  // TODO: Add more tag position restrictions
+  float max_error = 0.5f;
+
+  if (pose_marker.position.x > (max_pose_marker_x - max_error))
+  {
+    pose_marker.position.x = max_pose_marker_x;
+    return;
+  }
+
+  if (pose_marker.position.y > (max_pose_marker_y - max_error))
+  {
+    pose_marker.position.y = max_pose_marker_y;
+    return;
+  }
+
+  if (pose_marker.position.y < (min_pose_marker_y + max_error))
+  {
+    pose_marker.position.y = min_pose_marker_y;
+    return;
+  }
 }
 
 int main(int argc, char *argv[])
